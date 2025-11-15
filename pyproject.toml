@@ -1,0 +1,27 @@
+[project]
+name = "montagepy"
+version = "0.1.0"
+description = "A modern, fast, and configurable command-line tool for generating video thumbnail sheets"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "av>=10.0.0",
+    "Pillow>=10.0.0",
+    "click>=8.0.0",
+    "pyyaml>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0.0",
+]
+test = [
+    "scalene>=1.5.0",
+]
+
+[project.scripts]
+montagepy = "montagepy.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

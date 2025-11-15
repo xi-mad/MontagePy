@@ -1,0 +1,31 @@
+# MontagePy sample configuration
+# Copy this file as config.yaml and adjust values as needed.
+
+# Paths
+output_path: ""
+
+# Grid layout
+columns: 4
+rows: 5
+thumb_width: 480
+thumb_height: -1        # -1 means auto-calc height by aspect ratio
+padding: 8
+margin: 24
+header_height: 120
+
+# Frame extraction
+skip_start_percent: 5.0  # Percentage of video duration to skip at the start (0-100)
+skip_end_percent: 5.0    # Percentage of video duration to skip at the end (0-100)
+max_workers: 8            # Maximum number of threads for parallel frame extraction
+
+# Appearance
+font_file: "/System/Library/Fonts/STHeiti Light.ttc"
+font_color: "white"
+shadow_color: "black"
+background_color: "#222222"
+jpeg_quality: 2         # 1-31 (lower is better quality)
+
+# Logging
+quiet: false
+verbose: false
+
