@@ -26,6 +26,10 @@ class ClipExtractor:
         self.config = config
         self.video_info = video_info
         self.logger = logger
+        
+        # Use NEAREST for fastest resize (acceptable quality for thumbnails)
+        # For better quality, use Image.Resampling.BILINEAR or LANCZOS
+        self._resample_method = Image.Resampling.BILINEAR
 
     def extract_clips(self, timestamps: List[float]) -> List[VideoClip]:
         """Extract video clips at specified timestamps.
@@ -146,10 +150,10 @@ class ClipExtractor:
                         # Convert to PIL Image
                         pil_image = decoded_frame.to_image()
 
-                        # Resize if necessary
+                        # Resize if necessary (using fast NEAREST method)
                         if pil_image.size[0] != thumb_width or pil_image.size[1] != thumb_height:
                             pil_image = pil_image.resize(
-                                (thumb_width, thumb_height), Image.Resampling.BILINEAR
+                                (thumb_width, thumb_height), self._resample_method
                             )
 
                         frames.append(pil_image)
@@ -165,7 +169,7 @@ class ClipExtractor:
                             pil_image = decoded_frame.to_image()
                             if pil_image.size[0] != thumb_width or pil_image.size[1] != thumb_height:
                                 pil_image = pil_image.resize(
-                                    (thumb_width, thumb_height), Image.Resampling.BILINEAR
+                                    (thumb_width, thumb_height), self._resample_method
                                 )
                             frames.append(pil_image)
                             break

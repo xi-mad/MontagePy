@@ -27,6 +27,20 @@ class GifMontageRenderer:
         self.config = config
         self.video_info = video_info
         self.logger = logger
+        
+        # Load fonts once during initialization
+        self.header_font = None
+        self.meta_font = None
+        self.timestamp_font = None
+        self._font_cache = {}  # Cache for dynamically sized fonts
+        
+        if self.config.font_file:
+            try:
+                self.header_font = ImageFont.truetype(self.config.font_file, 40)
+                self.meta_font = ImageFont.truetype(self.config.font_file, 20)
+                self.timestamp_font = ImageFont.truetype(self.config.font_file, 18)
+            except Exception as e:
+                self.logger.verbose(f"Could not load font: {e}")
 
     def render(self, gif_images: List[Image.Image], timestamps: List[float]) -> None:
         """Render the GIF montage.
@@ -78,6 +92,11 @@ class GifMontageRenderer:
         # Create header image (static)
         header_image = self._create_header_image(total_width, thumb_width, thumb_height)
 
+        # Pre-create timestamp overlay (static, reused for all frames)
+        timestamp_overlay = self._create_timestamp_overlay(
+            thumb_width, thumb_height, timestamps, grid_width, grid_height
+        )
+
         # Compose all frames
         montage_frames = []
 
@@ -91,8 +110,12 @@ class GifMontageRenderer:
                     # Use last frame if not enough frames
                     frame_images.append(frames[-1] if frames else Image.new("RGB", (thumb_width, thumb_height)))
 
-            # Compose grid frame
-            grid_frame = self._compose_grid_frame(frame_images, thumb_width, thumb_height, timestamps)
+            # Compose grid frame (without timestamps)
+            grid_frame = self._compose_grid_frame(frame_images, thumb_width, thumb_height)
+            
+            # Paste timestamp overlay if available (use alpha channel as mask)
+            if timestamp_overlay:
+                grid_frame.paste(timestamp_overlay, (0, 0), timestamp_overlay.split()[3] if timestamp_overlay.mode == "RGBA" else timestamp_overlay)
 
             # Combine with header
             montage_frame = Image.new("RGB", (total_width, total_height), parse_color(self.config.background_color))
@@ -133,19 +156,9 @@ class GifMontageRenderer:
         header_image = Image.new("RGB", (total_width, self.config.header_height), parse_color(self.config.background_color))
         draw = ImageDraw.Draw(header_image)
 
-        # Load fonts if available
-        header_font = None
-        meta_font = None
-
-        if self.config.font_file:
-            try:
-                header_font = ImageFont.truetype(self.config.font_file, 40)
-                meta_font = ImageFont.truetype(self.config.font_file, 20)
-            except Exception as e:
-                self.logger.verbose(f"Could not load font: {e}")
-
-        if header_font:
-            self._draw_header_text(draw, total_width, header_font, meta_font)
+        # Use preloaded fonts
+        if self.header_font:
+            self._draw_header_text(draw, total_width, self.header_font, self.meta_font)
 
         return header_image
 
@@ -179,11 +192,17 @@ class GifMontageRenderer:
         else:
             display_text = Path(self.video_info.path).name
 
-        # Adjust font size to fit
+        # Adjust font size to fit (use cached fonts if available)
         font_size = 40
         while font_size > 10:
             try:
-                test_font = ImageFont.truetype(self.config.font_file, font_size)
+                # Check cache first
+                if font_size in self._font_cache:
+                    test_font = self._font_cache[font_size]
+                else:
+                    test_font = ImageFont.truetype(self.config.font_file, font_size)
+                    self._font_cache[font_size] = test_font
+                
                 bbox = draw.textbbox((0, 0), display_text, font=test_font)
                 text_width = bbox[2] - bbox[0]
                 if text_width < total_width * 0.9:
@@ -229,16 +248,73 @@ class GifMontageRenderer:
             draw.text((meta2_x + 1, 105), meta2, fill=shadow_color, font=meta_font)
             draw.text((meta2_x, 104), meta2, fill=(255, 255, 255), font=meta_font)
 
+    def _create_timestamp_overlay(
+        self, thumb_width: int, thumb_height: int, timestamps: List[float], grid_width: int, grid_height: int
+    ) -> Optional[Image.Image]:
+        """Create a static timestamp overlay image (RGBA with transparency).
+
+        Args:
+            thumb_width: Thumbnail width
+            thumb_height: Thumbnail height
+            timestamps: List of timestamps
+            grid_width: Grid width
+            grid_height: Grid height
+
+        Returns:
+            Timestamp overlay image with alpha channel, or None if no font
+        """
+        if not self.timestamp_font:
+            return None
+
+        # Calculate grid dimensions
+        total_width = grid_width + 2 * self.config.margin
+        total_height = grid_height + 2 * self.config.margin
+
+        # Create transparent overlay
+        overlay = Image.new("RGBA", (total_width, total_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+
+        # Pre-parse colors
+        shadow_color = parse_color(self.config.shadow_color)
+        white_color = (255, 255, 255)
+
+        # Pre-format all timestamps
+        formatted_timestamps = [format_duration(ts) for ts in timestamps]
+
+        # Draw all timestamps once
+        num_positions = self.config.columns * self.config.rows
+        for i in range(min(num_positions, len(formatted_timestamps))):
+            row = i // self.config.columns
+            col = i % self.config.columns
+
+            x = self.config.margin + col * (thumb_width + self.config.padding)
+            y = self.config.margin + row * (thumb_height + self.config.padding)
+
+            text_x = x + 10
+            text_y = y + thumb_height - 15
+            timestamp_str = formatted_timestamps[i]
+
+            # Draw shadow (with alpha)
+            draw.text(
+                (text_x + 1, text_y + 1),
+                timestamp_str,
+                fill=(*shadow_color, 255),  # Add alpha channel
+                font=self.timestamp_font,
+            )
+            # Draw text (with alpha)
+            draw.text((text_x, text_y), timestamp_str, fill=(*white_color, 255), font=self.timestamp_font)
+
+        return overlay
+
     def _compose_grid_frame(
-        self, frame_images: List[Image.Image], thumb_width: int, thumb_height: int, timestamps: List[float]
+        self, frame_images: List[Image.Image], thumb_width: int, thumb_height: int
     ) -> Image.Image:
-        """Compose a single grid frame.
+        """Compose a single grid frame (without timestamps).
 
         Args:
             frame_images: List of frame images for each position
             thumb_width: Thumbnail width
             thumb_height: Thumbnail height
-            timestamps: List of timestamps
 
         Returns:
             Composed grid frame
@@ -253,17 +329,8 @@ class GifMontageRenderer:
         # Create canvas
         bg_color = parse_color(self.config.background_color)
         canvas = Image.new("RGB", (total_width, total_height), bg_color)
-        draw = ImageDraw.Draw(canvas)
 
-        # Load timestamp font if available
-        timestamp_font = None
-        if self.config.font_file:
-            try:
-                timestamp_font = ImageFont.truetype(self.config.font_file, 18)
-            except Exception:
-                pass
-
-        # Draw frames
+        # Draw frames (no timestamps here, they're added via overlay)
         for i, img in enumerate(frame_images):
             row = i // self.config.columns
             col = i % self.config.columns
@@ -272,22 +339,6 @@ class GifMontageRenderer:
             y = self.config.margin + row * (thumb_height + self.config.padding)
 
             canvas.paste(img, (x, y))
-
-            # Draw timestamp on frame
-            if timestamp_font and i < len(timestamps):
-                timestamp_str = format_duration(timestamps[i])
-                text_x = x + 10
-                text_y = y + thumb_height - 15
-
-                # Draw shadow
-                draw.text(
-                    (text_x + 1, text_y + 1),
-                    timestamp_str,
-                    fill=parse_color(self.config.shadow_color),
-                    font=timestamp_font,
-                )
-                # Draw text
-                draw.text((text_x, text_y), timestamp_str, fill=parse_color("white"), font=timestamp_font)
 
         return canvas
 
