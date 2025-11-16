@@ -36,6 +36,12 @@ from montagepy.core.logger import Logger
     help="Number of rows in the grid.",
 )
 @click.option(
+    "--auto-grid",
+    is_flag=True,
+    default=False,
+    help="Automatically adjust grid size based on video duration.",
+)
+@click.option(
     "--thumb-width",
     type=int,
     default=640,
@@ -172,6 +178,7 @@ def main(
     overwrite: bool,
     quiet: bool,
     verbose: bool,
+    auto_grid: bool,
 ) -> None:
     """MontagePy - Generate thumbnail sheets for video files.
 
@@ -235,6 +242,8 @@ def main(
         cfg.quiet = True
     if verbose:
         cfg.verbose = True
+    if auto_grid:
+        cfg.auto_grid = True
 
     # Create logger
     logger = Logger(quiet=cfg.quiet, verbose=cfg.verbose)

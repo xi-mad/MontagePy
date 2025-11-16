@@ -13,6 +13,22 @@ padding: 8
 margin: 24
 header_height: 120
 
+# Auto grid based on duration
+auto_grid: false        # Enable automatic grid sizing based on video duration
+duration_grid_rules:
+  - max_duration: 120   # seconds, 0-2 minutes
+    columns: 2
+    rows: 2
+  - max_duration: 600   # seconds, 2-10 minutes
+    columns: 3
+    rows: 3
+  - max_duration: 1800  # seconds, 10-30 minutes
+    columns: 4
+    rows: 4
+  - max_duration: -1    # -1 means unlimited, 30+ minutes
+    columns: 5
+    rows: 5
+
 # Frame extraction
 skip_start_percent: 5.0  # Percentage of video duration to skip at the start (0-100)
 skip_end_percent: 5.0    # Percentage of video duration to skip at the end (0-100)

@@ -8,7 +8,8 @@ from montagepy.core.logger import Logger
 from montagepy.extractors.frame_extractor import FrameExtractor
 from montagepy.renderers.montage_renderer import MontageRenderer
 from montagepy.utils.file_utils import generate_unique_filename, scan_video_files
-from montagepy.video_info import VideoInfo, get_video_info
+from montagepy.utils.grid_utils import get_grid_size_by_duration
+from montagepy.video_info import get_video_info
 
 
 def process_single_file(cfg: Config, logger: Logger) -> None:
@@ -41,6 +42,20 @@ def process_single_file(cfg: Config, logger: Logger) -> None:
     except Exception as e:
         logger.error(f"Failed to get video info: {e}")
         sys.exit(1)
+
+    # Auto-adjust grid size based on duration if enabled
+    if cfg.auto_grid:
+        original_columns, original_rows = cfg.columns, cfg.rows
+        cfg.columns, cfg.rows = get_grid_size_by_duration(cfg, video_info.duration)
+        if cfg.columns != original_columns or cfg.rows != original_rows:
+            logger.info(
+                "Auto-adjusted grid size: %dx%d -> %dx%d (duration: %.1f seconds)",
+                original_columns,
+                original_rows,
+                cfg.columns,
+                cfg.rows,
+                video_info.duration,
+            )
 
     # Process video
     logger.info("Video analysis complete. Starting montage generation...")

@@ -1,8 +1,18 @@
 """Configuration management for MontagePy."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
 
 import yaml
+
+
+@dataclass
+class DurationGridRule:
+    """Rule for grid size based on video duration."""
+
+    max_duration: float  # Maximum duration in seconds (-1 means unlimited)
+    columns: int
+    rows: int
 
 
 @dataclass
@@ -21,6 +31,17 @@ class Config:
     padding: int = 5
     margin: int = 20
     header_height: int = 120
+
+    # Auto grid based on duration
+    auto_grid: bool = False  # Enable automatic grid sizing based on video duration
+    duration_grid_rules: List[DurationGridRule] = field(
+        default_factory=lambda: [
+            DurationGridRule(max_duration=120, columns=2, rows=2),  # 0-2 minutes
+            DurationGridRule(max_duration=600, columns=3, rows=3),  # 2-10 minutes
+            DurationGridRule(max_duration=1800, columns=4, rows=4),  # 10-30 minutes
+            DurationGridRule(max_duration=-1, columns=5, rows=5),  # 30+ minutes
+        ]
+    )
 
     # Frame extraction
     skip_start_percent: float = 5.0  # Percentage of video duration to skip at the start (0-100)
@@ -53,7 +74,20 @@ class Config:
         for key, value in data.items():
             # Convert snake_case keys from YAML to the dataclass field names
             if hasattr(cls, key):
-                config_dict[key] = value
+                # Special handling for duration_grid_rules
+                if key == "duration_grid_rules" and isinstance(value, list):
+                    rules = []
+                    for rule_dict in value:
+                        rules.append(
+                            DurationGridRule(
+                                max_duration=rule_dict.get("max_duration", -1),
+                                columns=rule_dict.get("columns", 4),
+                                rows=rule_dict.get("rows", 5),
+                            )
+                        )
+                    config_dict[key] = rules
+                else:
+                    config_dict[key] = value
 
         return cls(**config_dict)
 
