@@ -52,13 +52,14 @@ def process_single_file(cfg: Config, logger: Logger) -> None:
         original_columns, original_rows = cfg.columns, cfg.rows
         cfg.columns, cfg.rows = get_grid_size_by_duration(cfg, video_info.duration)
         if cfg.columns != original_columns or cfg.rows != original_rows:
+            duration_minutes = video_info.duration / 60.0
             logger.info(
-                "Auto-adjusted grid size: %dx%d -> %dx%d (duration: %.1f seconds)",
+                "Auto-adjusted grid size: %dx%d -> %dx%d (duration: %.1f minutes)",
                 original_columns,
                 original_rows,
                 cfg.columns,
                 cfg.rows,
-                video_info.duration,
+                duration_minutes,
             )
 
     # Process video

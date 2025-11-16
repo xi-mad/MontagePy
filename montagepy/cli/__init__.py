@@ -1,6 +1,6 @@
 """CLI module for MontagePy."""
 
-from montagepy.cli.commands import main
+from montagepy.cli.main import cli
 
-__all__ = ["main"]
+__all__ = ["cli"]
 

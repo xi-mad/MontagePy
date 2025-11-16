@@ -91,9 +91,12 @@ class Config:
                 if key == "duration_grid_rules" and isinstance(value, list):
                     rules = []
                     for rule_dict in value:
+                        # Convert minutes to seconds
+                        max_duration_minutes = rule_dict.get("max_duration_minutes", -1)
+                        max_duration = max_duration_minutes * 60 if max_duration_minutes > 0 else -1
                         rules.append(
                             DurationGridRule(
-                                max_duration=rule_dict.get("max_duration", -1),
+                                max_duration=max_duration,
                                 columns=rule_dict.get("columns", 4),
                                 rows=rule_dict.get("rows", 5),
                             )

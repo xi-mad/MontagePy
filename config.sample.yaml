@@ -1,51 +1,89 @@
-# MontagePy sample configuration
-# Copy this file as config.yaml and adjust values as needed.
+# MontagePy 配置文件示例
+# 复制此文件为 config.yaml 并根据需要调整值
+#
+# 使用方法：
+#   montagepy jpg video.mp4 --config config.yaml
+#   montagepy gif video.mp4 --config config.yaml
 
-# Paths
-output_path: ""
+# ============================================================================
+# 路径配置
+# ============================================================================
+output_path: ""  # 输出路径，空则放在输入文件同目录
 
-# Grid layout
-columns: 4
-rows: 5
-thumb_width: 480
-thumb_height: -1        # -1 means auto-calc height by aspect ratio
-padding: 8
-margin: 24
-header_height: 120
+# ============================================================================
+# 网格布局
+# ============================================================================
+columns: 4              # 列数
+rows: 5                 # 行数
+thumb_width: 640        # 缩略图宽度（像素）
+thumb_height: -1        # 缩略图高度（-1 表示自动计算）
+padding: 5              # 缩略图之间的间距
+margin: 20              # 网格四周的边距
+header_height: 120      # 头部信息区域高度
 
-# Auto grid based on duration
-auto_grid: false        # Enable automatic grid sizing based on video duration
+# ============================================================================
+# 自动网格（根据视频时长自动调整网格大小）
+# ============================================================================
+auto_grid: false        # 是否启用自动网格
 duration_grid_rules:
-  - max_duration: 120   # seconds, 0-2 minutes
+  - max_duration_minutes: 2    # 0-2 分钟：2x2
     columns: 2
     rows: 2
-  - max_duration: 600   # seconds, 2-10 minutes
+  - max_duration_minutes: 10   # 2-10 分钟：3x3
     columns: 3
     rows: 3
-  - max_duration: 1800  # seconds, 10-30 minutes
+  - max_duration_minutes: 30   # 10-30 分钟：4x4
     columns: 4
     rows: 4
-  - max_duration: -1    # -1 means unlimited, 30+ minutes
+  - max_duration_minutes: -1   # 30+ 分钟：5x5（-1 表示无上限）
     columns: 5
     rows: 5
 
-# Frame extraction
-skip_start_percent: 5.0  # Percentage of video duration to skip at the start (0-100)
-skip_end_percent: 5.0    # Percentage of video duration to skip at the end (0-100)
-max_workers: 8            # Maximum number of threads for parallel frame extraction
+# ============================================================================
+# 帧提取
+# ============================================================================
+skip_start_percent: 5.0   # 跳过开始百分比（0-100）
+skip_end_percent: 5.0     # 跳过结束百分比（0-100）
+max_workers: 8            # 最大工作线程数
 
-# Appearance
-font_file: "/System/Library/Fonts/STHeiti Light.ttc"
-font_color: "white"
-shadow_color: "black"
-background_color: "#222222"
-show_full_path: true   # Show full file path instead of just filename in the montage header
-jpeg_quality: 85        # 1-100 (higher is better quality)
+# ============================================================================
+# 输出格式
+# ============================================================================
+output_format: jpg        # jpg 或 gif
 
-# File handling
-overwrite: false        # Overwrite existing output files
+# ============================================================================
+# 外观
+# ============================================================================
+font_file: ""             # 字体文件路径（空则禁用文本渲染）
+font_color: "white"       # 字体颜色
+shadow_color: "black"     # 阴影颜色
+background_color: "#222222"  # 背景颜色
+show_full_path: false     # 是否显示完整路径
 
-# Logging
-quiet: false
-verbose: false
+# ============================================================================
+# JPG 配置（仅当 output_format: jpg 时生效）
+# ============================================================================
+jpeg_quality: 85          # JPEG 质量（1-100，数值越大质量越好）
 
+# ============================================================================
+# GIF 配置（仅当 output_format: gif 时生效）
+# ============================================================================
+gif_clip_duration: 2.0     # 每个片段时长（秒）
+gif_clip_start_offset: -1.0  # 片段开始偏移（秒，负数表示向前）
+gif_clip_end_offset: 1.0   # 片段结束偏移（秒，正数表示向后）
+gif_fps: 10                # GIF 帧率（建议 8-15）
+gif_loop: 0                # 循环次数（0=无限循环）
+gif_optimize: true         # 是否优化 GIF
+gif_colors: 256            # 颜色数量（2-256）
+gif_dither: true          # 是否使用颜色抖动
+
+# ============================================================================
+# 文件处理
+# ============================================================================
+overwrite: false           # 是否覆盖已存在文件
+
+# ============================================================================
+# 日志
+# ============================================================================
+quiet: false               # 静默模式
+verbose: false             # 详细输出
