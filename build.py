@@ -11,11 +11,41 @@ from pathlib import Path
 
 def clean():
     """Clean all build artifacts and output files."""
-    items_to_remove = [
-        "build",
-        "dist",
-        "__pycache__",
-    ]
+    removed_items = []
+
+    # Clean build directories
+    build_dirs = ["build", "dist"]
+    for dir_name in build_dirs:
+        dir_path = Path(dir_name)
+        if dir_path.exists():
+            try:
+                shutil.rmtree(dir_path)
+                removed_items.append(f"Directory: {dir_name}")
+            except Exception as e:
+                print(f"Warning: Failed to remove {dir_name}: {e}")
+
+    # Clean all __pycache__ directories recursively (excluding .venv)
+    for pycache_dir in Path(".").rglob("__pycache__"):
+        if pycache_dir.is_dir():
+            # Skip .venv directory
+            if ".venv" in pycache_dir.parts:
+                continue
+            try:
+                shutil.rmtree(pycache_dir)
+                removed_items.append(f"Directory: {pycache_dir}")
+            except Exception as e:
+                print(f"Warning: Failed to remove {pycache_dir}: {e}")
+
+    # Clean .pyc files (in case any are left, excluding .venv)
+    for pyc_file in Path(".").rglob("*.pyc"):
+        # Skip .venv directory
+        if ".venv" in pyc_file.parts:
+            continue
+        try:
+            pyc_file.unlink()
+            removed_items.append(f"File: {pyc_file}")
+        except Exception as e:
+            print(f"Warning: Failed to remove {pyc_file}: {e}")
 
     # Also clean PyInstaller generated files
     spec_file = Path("montagepy.spec")
@@ -23,26 +53,11 @@ def clean():
         # PyInstaller may create .spec.bak files
         bak_file = Path("montagepy.spec.bak")
         if bak_file.exists():
-            items_to_remove.append(str(bak_file))
-
-    # Clean montagepy package __pycache__
-    montagepy_cache = Path("montagepy/__pycache__")
-    if montagepy_cache.exists():
-        items_to_remove.append(str(montagepy_cache))
-
-    removed_items = []
-    for item in items_to_remove:
-        item_path = Path(item)
-        if item_path.exists():
             try:
-                if item_path.is_dir():
-                    shutil.rmtree(item_path)
-                    removed_items.append(f"Directory: {item}")
-                else:
-                    item_path.unlink()
-                    removed_items.append(f"File: {item}")
+                bak_file.unlink()
+                removed_items.append(f"File: {bak_file}")
             except Exception as e:
-                print(f"Warning: Failed to remove {item}: {e}")
+                print(f"Warning: Failed to remove {bak_file}: {e}")
 
     if removed_items:
         print("🧹 Cleaned the following items:")
@@ -98,10 +113,21 @@ def build():
             "--hidden-import=click",
             "--hidden-import=yaml",
             "--hidden-import=montagepy",
-            "--hidden-import=montagepy.config",
-            "--hidden-import=montagepy.logger",
-            "--hidden-import=montagepy.processor",
+            "--hidden-import=montagepy.cli",
+            "--hidden-import=montagepy.cli.commands",
+            "--hidden-import=montagepy.cli.types",
+            "--hidden-import=montagepy.core",
+            "--hidden-import=montagepy.core.config",
+            "--hidden-import=montagepy.core.logger",
+            "--hidden-import=montagepy.core.handlers",
+            "--hidden-import=montagepy.extractors",
+            "--hidden-import=montagepy.extractors.frame_extractor",
+            "--hidden-import=montagepy.renderers",
+            "--hidden-import=montagepy.renderers.montage_renderer",
             "--hidden-import=montagepy.utils",
+            "--hidden-import=montagepy.utils.file_utils",
+            "--hidden-import=montagepy.utils.color_utils",
+            "--hidden-import=montagepy.utils.format_utils",
             "--hidden-import=montagepy.video_info",
             "montagepy/main.py",
         ]

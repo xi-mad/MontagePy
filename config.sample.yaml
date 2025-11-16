@@ -23,7 +23,7 @@ font_file: "/System/Library/Fonts/STHeiti Light.ttc"
 font_color: "white"
 shadow_color: "black"
 background_color: "#222222"
-jpeg_quality: 2         # 1-31 (lower is better quality)
+jpeg_quality: 85        # 1-100 (higher is better quality)
 
 # Logging
 quiet: false

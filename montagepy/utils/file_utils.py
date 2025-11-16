@@ -1,23 +1,40 @@
-"""Utility functions for MontagePy."""
+"""File utility functions for MontagePy."""
 
-import re
 from pathlib import Path
 from typing import List
 
 # Common video file extensions
 VIDEO_EXTENSIONS = {
-    ".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv", ".webm",
-    ".m4v", ".mpg", ".mpeg", ".3gp", ".ogv", ".ts", ".mts",
-    ".m2ts", ".vob", ".asf", ".rm", ".rmvb", ".divx", ".xvid"
+    ".mp4",
+    ".avi",
+    ".mkv",
+    ".mov",
+    ".wmv",
+    ".flv",
+    ".webm",
+    ".m4v",
+    ".mpg",
+    ".mpeg",
+    ".3gp",
+    ".ogv",
+    ".ts",
+    ".mts",
+    ".m2ts",
+    ".vob",
+    ".asf",
+    ".rm",
+    ".rmvb",
+    ".divx",
+    ".xvid",
 }
 
 
 def scan_video_files(directory: str) -> List[str]:
     """Recursively scan directory for video files.
-    
+
     Args:
         directory: Directory path to scan
-        
+
     Returns:
         List of video file paths
     """
@@ -34,103 +51,17 @@ def scan_video_files(directory: str) -> List[str]:
     return sorted(video_files)
 
 
-def parse_color(color_str: str) -> tuple[int, int, int]:
-    """Parse color string to RGB tuple.
-    
-    Supports:
-    - Hex colors: #RRGGBB or RRGGBB (with or without #)
-    - Color names: black, white, red, etc.
-    
-    Args:
-        color_str: Color string
-        
-    Returns:
-        RGB tuple (R, G, B) with values 0-255
-        
-    Raises:
-        ValueError: If color string is invalid
-    """
-    if not color_str:
-        raise ValueError("Color string cannot be empty")
-
-    original_color_str = color_str  # Keep original for error message
-    color_str = color_str.strip()
-
-    # Color name to hex mapping
-    color_map = {
-        "black": "#000000",
-        "white": "#FFFFFF",
-        "red": "#FF0000",
-        "lime": "#00FF00",
-        "green": "#008000",
-        "blue": "#0000FF",
-        "yellow": "#FFFF00",
-        "cyan": "#00FFFF",
-        "magenta": "#FF00FF",
-        "silver": "#C0C0C0",
-        "gray": "#808080",
-        "grey": "#808080",
-        "maroon": "#800000",
-        "olive": "#808000",
-        "purple": "#800080",
-        "teal": "#008080",
-        "navy": "#000080",
-        "darkgray": "#A9A9A9",
-        "darkgrey": "#A9A9A9",
-        "lightgray": "#D3D3D3",
-        "lightgrey": "#D3D3D3",
-    }
-
-    # Check if it's a color name (case-insensitive)
-    color_lower = color_str.lower()
-    if color_lower in color_map:
-        color_str = color_map[color_lower]
-
-    # Remove # if present
-    color_str = color_str.lstrip("#")
-
-    # Convert to lowercase for validation
-    color_str = color_str.lower()
-
-    # Validate hex format (must be exactly 6 hex digits)
-    if not re.match(r"^[0-9a-f]{6}$", color_str):
-        raise ValueError(
-            f"Invalid color format: {original_color_str}. Expected hex color (#RRGGBB or RRGGBB) or color name.")
-
-    # Convert to RGB
-    r = int(color_str[0:2], 16)
-    g = int(color_str[2:4], 16)
-    b = int(color_str[4:6], 16)
-
-    return (r, g, b)
-
-
-def format_duration(seconds: float) -> str:
-    """Format duration in seconds to HH:MM:SS string.
-    
-    Args:
-        seconds: Duration in seconds
-        
-    Returns:
-        Formatted string like "01:23:45"
-    """
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
-    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-
-
 def generate_unique_filename(video_file: str, input_root: str) -> str:
     """Generate a unique filename based on the video file's absolute path.
-    
+
     This function creates a unique filename to avoid conflicts when processing
     multiple files with the same name. It uses the input root directory as the
     base for calculating relative paths.
-    
+
     Args:
         video_file: Path to the video file
         input_root: Root directory path used as base for relative path calculation
-        
+
     Returns:
         Unique filename string (e.g., "subdir1_subdir2_filename_montage.jpg")
     """
@@ -181,7 +112,11 @@ def generate_unique_filename(video_file: str, input_root: str) -> str:
 
     # Check if file is at root or directly in root
     # rel_path_str could be just the filename (e.g., "video.mp4") or "." for root
-    if rel_path_str == "." or rel_path_str == abs_video_file.name or rel_path_str == abs_video_file.stem + abs_video_file.suffix:
+    if (
+        rel_path_str == "."
+        or rel_path_str == abs_video_file.name
+        or rel_path_str == abs_video_file.stem + abs_video_file.suffix
+    ):
         return base_name + suffix
 
     # Get directory part of relative path
@@ -238,7 +173,8 @@ def generate_unique_filename(video_file: str, input_root: str) -> str:
             else:
                 # Truncate base name if no path part
                 if len(base_name) > max_filename_len - len(suffix):
-                    base_name = base_name[:max_filename_len - len(suffix)]
+                    base_name = base_name[: max_filename_len - len(suffix)]
                     filename = base_name + suffix
 
     return filename
+

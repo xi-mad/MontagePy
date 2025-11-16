@@ -8,7 +8,7 @@ class Logger:
 
     def __init__(self, quiet: bool = False, verbose: bool = False):
         """Initialize logger.
-        
+
         Args:
             quiet: If True, suppress all output
             verbose: If True, enable verbose output
@@ -39,3 +39,4 @@ class Logger:
                 print(f"Error: {message % args}", file=sys.stderr)
             else:
                 print(f"Error: {message}", file=sys.stderr)
+
