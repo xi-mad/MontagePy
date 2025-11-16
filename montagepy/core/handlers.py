@@ -5,7 +5,10 @@ from pathlib import Path
 
 from montagepy.core.config import Config
 from montagepy.core.logger import Logger
+from montagepy.converters.gif_converter import GifConverter
+from montagepy.extractors.clip_extractor import ClipExtractor
 from montagepy.extractors.frame_extractor import FrameExtractor
+from montagepy.renderers.gif_montage_renderer import GifMontageRenderer
 from montagepy.renderers.montage_renderer import MontageRenderer
 from montagepy.utils.file_utils import generate_unique_filename, scan_video_files
 from montagepy.utils.grid_utils import get_grid_size_by_duration
@@ -23,7 +26,8 @@ def process_single_file(cfg: Config, logger: Logger) -> None:
     if not cfg.output_path:
         input_dir = Path(cfg.input_path).parent
         base_name = Path(cfg.input_path).stem
-        cfg.output_path = str(input_dir / f"{base_name}_montage.jpg")
+        extension = "gif" if cfg.output_format.lower() == "gif" else "jpg"
+        cfg.output_path = str(input_dir / f"{base_name}_montage.{extension}")
 
     # Check if output file exists
     if cfg.output_path != "-":
@@ -60,13 +64,53 @@ def process_single_file(cfg: Config, logger: Logger) -> None:
     # Process video
     logger.info("Video analysis complete. Starting montage generation...")
     try:
-        # Extract frames
-        extractor = FrameExtractor(cfg, video_info, logger)
-        frames, timestamps = extractor.extract_frames()
+        if cfg.output_format.lower() == "gif":
+            # GIF mode: extract clips and convert to GIF
+            logger.info("GIF mode: Extracting video clips...")
+            
+            # First, calculate timestamps (same logic as frame extraction)
+            num_clips = cfg.columns * cfg.rows
+            skip_start = cfg.skip_start_percent / 100.0
+            skip_end = cfg.skip_end_percent / 100.0
+            
+            start_offset = video_info.duration * skip_start
+            end_offset = video_info.duration * (1.0 - skip_end)
+            duration = end_offset - start_offset
+            interval = duration / num_clips
+            
+            timestamps = [start_offset + (i * interval) for i in range(num_clips)]
+            
+            # Extract clips
+            clip_extractor = ClipExtractor(cfg, video_info, logger)
+            clips = clip_extractor.extract_clips(timestamps)
+            
+            # Convert clips to GIFs
+            logger.info("Converting clips to GIFs...")
+            gif_converter = GifConverter(cfg, logger)
+            gif_images = []
+            clip_timestamps = []
+            
+            for clip in clips:
+                thumb_width = cfg.thumb_width
+                thumb_height = cfg.thumb_height
+                if thumb_height <= 0:
+                    thumb_height = int(thumb_width / (video_info.width / video_info.height))
+                
+                gif_img = gif_converter.convert_clip_to_gif(clip, thumb_width, thumb_height)
+                gif_images.append(gif_img)
+                clip_timestamps.append(clip.timestamp)
+            
+            # Render GIF montage
+            logger.info("Composing GIF montage...")
+            renderer = GifMontageRenderer(cfg, video_info, logger)
+            renderer.render(gif_images, clip_timestamps)
+        else:
+            # JPG mode: extract frames and render static montage
+            extractor = FrameExtractor(cfg, video_info, logger)
+            frames, timestamps = extractor.extract_frames()
 
-        # Render montage
-        renderer = MontageRenderer(cfg, video_info, logger)
-        renderer.render(frames, timestamps)
+            renderer = MontageRenderer(cfg, video_info, logger)
+            renderer.render(frames, timestamps)
     except Exception as e:
         logger.error(f"Failed to generate montage: {e}")
         # print trace
@@ -126,7 +170,8 @@ def process_directory(cfg: Config, logger: Logger) -> None:
             if is_directory:
                 # Output is a directory - use unique filename based on relative path
                 output_path_obj.mkdir(parents=True, exist_ok=True)
-                unique_filename = generate_unique_filename(video_file, cfg.input_path)
+                extension = "gif" if cfg.output_format.lower() == "gif" else "jpg"
+                unique_filename = generate_unique_filename(video_file, cfg.input_path, extension)
                 video_cfg.output_path = str(output_path_obj / unique_filename)
                 if logger:
                     if logger.verbose:

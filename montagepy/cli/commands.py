@@ -118,10 +118,40 @@ from montagepy.core.logger import Logger
     help="Show full file path instead of just filename in the montage header.",
 )
 @click.option(
+    "--output-format",
+    type=click.Choice(["jpg", "gif"], case_sensitive=False),
+    default="jpg",
+    help="Output format: 'jpg' for static images, 'gif' for animated montage.",
+)
+@click.option(
     "--jpeg-quality",
     type=int,
     default=85,
     help="JPEG quality for the output image (1-100, higher is better).",
+)
+@click.option(
+    "--gif-clip-duration",
+    type=float,
+    default=2.0,
+    help="Duration of each clip in seconds (for GIF mode).",
+)
+@click.option(
+    "--gif-fps",
+    type=int,
+    default=10,
+    help="GIF frame rate (recommended 8-15).",
+)
+@click.option(
+    "--gif-colors",
+    type=int,
+    default=256,
+    help="Number of colors in GIF (max 256, recommended 128-256).",
+)
+@click.option(
+    "--gif-loop",
+    type=int,
+    default=0,
+    help="Number of loops for GIF (0 = infinite).",
 )
 @click.option(
     "--max-workers",
@@ -172,7 +202,12 @@ def main(
     shadow_color: str,
     background_color: str,
     show_full_path: bool,
+    output_format: str,
     jpeg_quality: int,
+    gif_clip_duration: float,
+    gif_fps: int,
+    gif_colors: int,
+    gif_loop: int,
     max_workers: int,
     config: str,
     overwrite: bool,
@@ -204,6 +239,8 @@ def main(
     cfg.input_path = input_path
     if output_path:
         cfg.output_path = output_path
+    # Always set output_format from CLI (even if it's the default "jpg")
+    cfg.output_format = output_format.lower()
     if columns != 4:
         cfg.columns = columns
     if rows != 5:
@@ -234,6 +271,14 @@ def main(
         cfg.show_full_path = True
     if jpeg_quality != 85:
         cfg.jpeg_quality = jpeg_quality
+    if gif_clip_duration != 2.0:
+        cfg.gif_clip_duration = gif_clip_duration
+    if gif_fps != 10:
+        cfg.gif_fps = gif_fps
+    if gif_colors != 256:
+        cfg.gif_colors = gif_colors
+    if gif_loop != 0:
+        cfg.gif_loop = gif_loop
     if max_workers != 8:
         cfg.max_workers = max_workers
     if overwrite:

@@ -48,6 +48,9 @@ class Config:
     skip_end_percent: float = 5.0  # Percentage of video duration to skip at the end (0-100)
     max_workers: int = 8  # Maximum number of threads for parallel frame extraction
 
+    # Output format
+    output_format: str = "jpg"  # "jpg" or "gif"
+
     # Appearance
     font_file: str = ""
     font_color: str = "white"
@@ -55,6 +58,16 @@ class Config:
     background_color: str = "#222222"
     show_full_path: bool = False
     jpeg_quality: int = 85  # 1-100, higher is better (standard JPEG quality scale)
+
+    # GIF configuration
+    gif_clip_duration: float = 2.0  # Duration of each clip in seconds
+    gif_clip_start_offset: float = -1.0  # Start offset from timestamp (negative = before)
+    gif_clip_end_offset: float = 1.0  # End offset from timestamp (positive = after)
+    gif_fps: int = 10  # GIF frame rate (recommended 8-15)
+    gif_loop: int = 0  # Number of loops (0 = infinite)
+    gif_optimize: bool = True  # Optimize GIF for smaller file size
+    gif_colors: int = 256  # Number of colors (max 256, recommended 128-256)
+    gif_dither: bool = True  # Use dithering for better color quality
 
     # File handling
     overwrite: bool = False

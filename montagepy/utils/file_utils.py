@@ -51,7 +51,7 @@ def scan_video_files(directory: str) -> List[str]:
     return sorted(video_files)
 
 
-def generate_unique_filename(video_file: str, input_root: str) -> str:
+def generate_unique_filename(video_file: str, input_root: str, extension: str = "jpg") -> str:
     """Generate a unique filename based on the video file's absolute path.
 
     This function creates a unique filename to avoid conflicts when processing
@@ -61,6 +61,7 @@ def generate_unique_filename(video_file: str, input_root: str) -> str:
     Args:
         video_file: Path to the video file
         input_root: Root directory path used as base for relative path calculation
+        extension: File extension (default: "jpg")
 
     Returns:
         Unique filename string (e.g., "subdir1_subdir2_filename_montage.jpg")
@@ -97,7 +98,7 @@ def generate_unique_filename(video_file: str, input_root: str) -> str:
 
     # Get base filename without extension
     base_name = abs_video_file.stem
-    suffix = "_montage.jpg"
+    suffix = f"_montage.{extension}"
 
     # Calculate relative path from input root
     try:
