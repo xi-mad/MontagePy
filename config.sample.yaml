@@ -39,7 +39,11 @@ font_file: "/System/Library/Fonts/STHeiti Light.ttc"
 font_color: "white"
 shadow_color: "black"
 background_color: "#222222"
+show_full_path: true   # Show full file path instead of just filename in the montage header
 jpeg_quality: 85        # 1-100 (higher is better quality)
+
+# File handling
+overwrite: false        # Overwrite existing output files
 
 # Logging
 quiet: false
