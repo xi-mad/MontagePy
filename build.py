@@ -68,14 +68,23 @@ def clean():
         print("✅ Nothing to clean (all build artifacts already removed)")
 
 
-def build():
-    """Build executable using PyInstaller."""
+def build(mode="onedir"):
+    """Build executable using PyInstaller.
+    
+    Args:
+        mode: Build mode, either "onefile" or "onedir" (default: "onedir")
+    """
     # Check if PyInstaller is installed
     try:
         import PyInstaller
     except ImportError:
         print("Error: PyInstaller is not installed.")
         print("Please install it with: pip install pyinstaller")
+        sys.exit(1)
+
+    # Validate mode
+    if mode not in ["onefile", "onedir"]:
+        print(f"Error: Invalid mode '{mode}'. Must be 'onefile' or 'onedir'")
         sys.exit(1)
 
     # Clean previous builds
@@ -85,17 +94,22 @@ def build():
             print(f"Cleaning {dir_name}...")
             shutil.rmtree(dir_name)
 
-    # Use spec file if it exists, otherwise use command line
+    # Use spec file only if it exists and we're using default onedir mode
+    # When mode is explicitly specified, use command line to have full control
     spec_file = Path("montagepy.spec")
-    if spec_file.exists():
-        print("Building executable using montagepy.spec...")
+    # Use spec file only for default onedir mode (when no --mode is specified)
+    # Note: This assumes spec file is configured for onedir mode
+    use_spec = spec_file.exists() and mode == "onedir"
+    
+    if use_spec:
+        print("Building executable using montagepy.spec (onedir mode)...")
         cmd = ["pyinstaller", "--clean", str(spec_file)]
     else:
-        print("Building executable with PyInstaller...")
+        mode_name = "onefile" if mode == "onefile" else "directory"
+        print(f"Building executable with PyInstaller ({mode_name} mode)...")
         cmd = [
             "pyinstaller",
             "--clean",
-            "--onefile",
             "--name=montagepy",
             "--add-data=config.sample.yaml:.",
             "--hidden-import=av",
@@ -141,19 +155,42 @@ def build():
             "--hidden-import=montagepy.utils.format_utils",
             "--hidden-import=montagepy.utils.grid_utils",
             "--hidden-import=montagepy.video_info",
-            "montagepy/main.py",
         ]
+        
+        # Add --onefile option if mode is onefile
+        if mode == "onefile":
+            cmd.insert(2, "--onefile")  # Insert after --clean
+        
+        cmd.append("montagepy/main.py")
 
     result = subprocess.run(cmd, check=False)
 
     if result.returncode == 0:
         print("\n✅ Build successful!")
         exe_name = "montagepy.exe" if sys.platform == "win32" else "montagepy"
-        exe_path = os.path.abspath(f"dist/{exe_name}")
+        
+        # Determine executable path based on mode
+        if mode == "onefile":
+            # Onefile mode: executable is directly in dist/
+            exe_path = os.path.abspath(f"dist/{exe_name}")
+        else:
+            # Onedir mode: executable is in dist/montagepy/montagepy
+            exe_path = os.path.abspath(f"dist/montagepy/{exe_name}")
+            # Fallback: check if it's in dist/ directly (in case spec file uses onefile)
+            if not os.path.exists(exe_path):
+                exe_path = os.path.abspath(f"dist/{exe_name}")
+        
         if os.path.exists(exe_path):
             print(f"Executable location: {exe_path}")
             file_size = os.path.getsize(exe_path) / (1024 * 1024)  # MB
             print(f"Executable size: {file_size:.2f} MB")
+            
+            # In directory mode, show directory size
+            if mode == "onedir" and os.path.exists(os.path.dirname(exe_path)) and os.path.dirname(exe_path) != "dist":
+                dir_size = sum(
+                    f.stat().st_size for f in Path(os.path.dirname(exe_path)).rglob('*') if f.is_file()
+                ) / (1024 * 1024)  # MB
+                print(f"Directory size: {dir_size:.2f} MB")
         else:
             print("Warning: Executable not found in dist/")
     else:
@@ -168,10 +205,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python build.py          # Build executable
-  python build.py --build # Build executable (explicit)
-  python build.py --clean # Clean build artifacts
-  python build.py --clean --build  # Clean then build
+  python build.py                    # Build executable (onedir mode, default)
+  python build.py --build            # Build executable (explicit)
+  python build.py --mode onefile     # Build as single executable file
+  python build.py --mode onedir      # Build as directory (default)
+  python build.py --clean            # Clean build artifacts
+  python build.py --clean --build --mode onefile  # Clean then build as onefile
         """
     )
     parser.add_argument(
@@ -183,6 +222,12 @@ Examples:
         "--clean",
         action="store_true",
         help="Clean build artifacts and output files",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["onefile", "onedir"],
+        default="onedir",
+        help="Build mode: 'onefile' creates a single executable file, 'onedir' creates a directory with executable and dependencies (default: onedir)",
     )
 
     args = parser.parse_args()
@@ -198,7 +243,7 @@ Examples:
 
     # Build if requested
     if args.build:
-        build()
+        build(mode=args.mode)
 
 
 if __name__ == "__main__":
