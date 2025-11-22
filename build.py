@@ -154,7 +154,9 @@ def build(mode="onedir"):
             "--hidden-import=montagepy.utils.color_utils",
             "--hidden-import=montagepy.utils.format_utils",
             "--hidden-import=montagepy.utils.grid_utils",
+            "--hidden-import=montagepy.utils.grid_utils",
             "--hidden-import=montagepy.video_info",
+            "--add-data=ui_prototype:ui_prototype",
         ]
         
         # Add --onefile option if mode is onefile
