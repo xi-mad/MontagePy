@@ -28,12 +28,13 @@ class MontageRenderer:
         self.video_info = video_info
         self.logger = logger
 
-    def render(self, frames: List[Image.Image], timestamps: List[float]) -> None:
+    def render(self, frames: List[Image.Image], timestamps: List[float], layout: Optional["GridLayout"] = None) -> None:
         """Render the montage image.
 
         Args:
             frames: List of frame images
             timestamps: List of timestamps corresponding to frames
+            layout: Optional custom grid layout
         """
         # Calculate thumbnail dimensions
         thumb_width = self.config.thumb_width
@@ -74,19 +75,50 @@ class MontageRenderer:
 
         # Draw frames
         for i, img in enumerate(frames):
-            row = i // self.config.columns
-            col = i % self.config.columns
+            if layout:
+                # Use custom layout
+                # Import here to avoid circular imports if necessary, or assume it's passed correctly
+                cell = layout.get_cell(i)
+                if not cell:
+                    self.logger.verbose(f"No layout cell defined for frame {i}, skipping")
+                    continue
+                
+                row = cell.row
+                col = cell.col
+                row_span = cell.row_span
+                col_span = cell.col_span
+            else:
+                # Default grid logic
+                row = i // self.config.columns
+                col = i % self.config.columns
+                row_span = 1
+                col_span = 1
 
+            # Calculate position
             x = self.config.margin + col * (thumb_width + self.config.padding)
             y = self.config.header_height + self.config.margin + row * (thumb_height + self.config.padding)
+
+            # Calculate size for merged cells
+            # Width = span * single_width + (span - 1) * padding
+            current_thumb_width = col_span * thumb_width + (col_span - 1) * self.config.padding
+            current_thumb_height = row_span * thumb_height + (row_span - 1) * self.config.padding
+
+            # Resize image if cell is merged (and thus larger)
+            if row_span > 1 or col_span > 1:
+                img = img.resize((current_thumb_width, current_thumb_height), Image.Resampling.LANCZOS)
 
             canvas.paste(img, (x, y))
 
             # Draw timestamp on frame
             if timestamp_font:
                 timestamp_str = format_duration(timestamps[i])
+            # Draw timestamp on frame
+            if timestamp_font:
+                timestamp_str = format_duration(timestamps[i])
                 text_x = x + 10
-                text_y = y + thumb_height - 15
+                # Use current_thumb_height if defined (from layout logic), otherwise thumb_height
+                cell_height = locals().get('current_thumb_height', thumb_height)
+                text_y = y + cell_height - 15
 
                 # Draw shadow
                 draw.text(

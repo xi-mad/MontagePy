@@ -26,13 +26,19 @@ class FrameExtractor:
         self.video_info = video_info
         self.logger = logger
 
-    def extract_frames(self) -> Tuple[List[Image.Image], List[float]]:
+    def extract_frames(self, layout: Optional["GridLayout"] = None) -> Tuple[List[Image.Image], List[float]]:
         """Extract frames from video at calculated timestamps.
+
+        Args:
+            layout: Optional custom grid layout. If provided, uses layout.count for number of frames.
 
         Returns:
             Tuple of (frames list, timestamps list)
         """
-        num_frames = self.config.columns * self.config.rows
+        if layout:
+            num_frames = layout.count
+        else:
+            num_frames = self.config.columns * self.config.rows
         if num_frames <= 0:
             raise ValueError("Number of frames must be positive")
 
