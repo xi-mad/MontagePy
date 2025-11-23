@@ -160,7 +160,6 @@ def build(mode="onedir", gui=False):
             "--hidden-import=montagepy.utils.grid_utils",
             "--hidden-import=montagepy.utils.grid_utils",
             "--hidden-import=montagepy.video_info",
-            "--add-data=ui_prototype:ui_prototype",
         ]
         
         if gui:
