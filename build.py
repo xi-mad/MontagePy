@@ -168,6 +168,31 @@ def build(mode="onedir", gui=False):
             cmd.append("--hidden-import=qt_material")
             cmd.append("--collect-all=qt_material")
             
+            # Exclude PySide6-addons modules to reduce package size
+            cmd.append("--exclude-module=PySide6.QtCharts")
+            cmd.append("--exclude-module=PySide6.QtDataVisualization")
+            cmd.append("--exclude-module=PySide6.Qt3DCore")
+            cmd.append("--exclude-module=PySide6.Qt3DRender")
+            cmd.append("--exclude-module=PySide6.Qt3DInput")
+            cmd.append("--exclude-module=PySide6.Qt3DAnimation")
+            cmd.append("--exclude-module=PySide6.QtWebEngineCore")
+            cmd.append("--exclude-module=PySide6.QtWebEngineWidgets")
+            cmd.append("--exclude-module=PySide6.QtWebEngineQuick")
+            cmd.append("--exclude-module=PySide6.QtWebChannel")
+            cmd.append("--exclude-module=PySide6.QtWebSockets")
+            cmd.append("--exclude-module=PySide6.QtMultimedia")
+            cmd.append("--exclude-module=PySide6.QtMultimediaWidgets")
+            cmd.append("--exclude-module=PySide6.QtPositioning")
+            cmd.append("--exclude-module=PySide6.QtNetworkAuth")
+            cmd.append("--exclude-module=PySide6.QtRemoteObjects")
+            cmd.append("--exclude-module=PySide6.QtScxml")
+            cmd.append("--exclude-module=PySide6.QtSensors")
+            cmd.append("--exclude-module=PySide6.QtSerialPort")
+            cmd.append("--exclude-module=PySide6.QtSpatialAudio")
+            cmd.append("--exclude-module=PySide6.QtStateMachine")
+            cmd.append("--exclude-module=PySide6.QtTextToSpeech")
+            cmd.append("--exclude-module=PySide6.QtVirtualKeyboard")
+            
             # Add platform-specific icon if it exists
             if sys.platform == "win32":
                 icon_path = Path("montagepy/gui/assets/icon.ico")
