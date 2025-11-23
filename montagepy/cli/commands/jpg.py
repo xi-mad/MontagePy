@@ -126,8 +126,12 @@ def jpg(
 
     # Check if input is directory or file
     input_path_obj = Path(input_path)
-    if input_path_obj.is_dir():
-        process_directory(cfg, logger)
-    else:
-        process_single_file(cfg, logger)
+    try:
+        if input_path_obj.is_dir():
+            process_directory(cfg, logger)
+        else:
+            process_single_file(cfg, logger)
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        sys.exit(1)
 

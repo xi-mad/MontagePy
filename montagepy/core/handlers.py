@@ -29,14 +29,27 @@ def process_single_file(cfg: Config, logger: Logger) -> None:
         extension = "gif" if cfg.output_format.lower() == "gif" else "jpg"
         cfg.output_path = str(input_dir / f"{base_name}_montage.{extension}")
 
-    # Check if output file exists
-    if cfg.output_path != "-":
+    # Check if output file exists or is a directory
+    if cfg.output_path and cfg.output_path != "-":
         output_path_obj = Path(cfg.output_path)
+        
+        # If output path is a directory (or looks like one without extension), generate filename
+        is_directory = (output_path_obj.exists() and output_path_obj.is_dir()) or (
+            not output_path_obj.exists() and not output_path_obj.suffix
+        )
+        
+        if is_directory:
+            output_path_obj.mkdir(parents=True, exist_ok=True)
+            base_name = Path(cfg.input_path).stem
+            extension = "gif" if cfg.output_format.lower() == "gif" else "jpg"
+            cfg.output_path = str(output_path_obj / f"{base_name}_montage.{extension}")
+            output_path_obj = Path(cfg.output_path)
+
         if output_path_obj.exists() and not cfg.overwrite:
             logger.error(f"File already exists (use --overwrite to force): {cfg.output_path}")
-            sys.exit(1)
+            raise FileExistsError(f"File already exists: {cfg.output_path}")
 
-        # Ensure output directory exists
+        # Ensure output directory exists (in case it was a file path)
         output_path_obj.parent.mkdir(parents=True, exist_ok=True)
 
     # Get video info
@@ -45,7 +58,7 @@ def process_single_file(cfg: Config, logger: Logger) -> None:
         video_info = get_video_info(cfg.input_path)
     except Exception as e:
         logger.error(f"Failed to get video info: {e}")
-        sys.exit(1)
+        raise RuntimeError(f"Failed to get video info: {e}")
 
     # Auto-adjust grid size based on duration if enabled
     if cfg.auto_grid:
@@ -118,7 +131,8 @@ def process_single_file(cfg: Config, logger: Logger) -> None:
         import traceback
 
         traceback.print_exc()
-        sys.exit(1)
+        traceback.print_exc()
+        raise RuntimeError(f"Failed to generate montage: {e}")
 
     if cfg.output_path != "-":
         logger.info("✅ Montage generated successfully at: %s", cfg.output_path)
@@ -138,7 +152,7 @@ def process_directory(cfg: Config, logger: Logger) -> None:
         video_files = scan_video_files(cfg.input_path)
     except Exception as e:
         logger.error(f"Failed to scan directory: {e}")
-        sys.exit(1)
+        raise RuntimeError(f"Failed to scan directory: {e}")
 
     if not video_files:
         logger.info("No video files found in directory.")

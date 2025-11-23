@@ -68,11 +68,12 @@ def clean():
         print("✅ Nothing to clean (all build artifacts already removed)")
 
 
-def build(mode="onedir"):
+def build(mode="onedir", gui=False):
     """Build executable using PyInstaller.
     
     Args:
         mode: Build mode, either "onefile" or "onedir" (default: "onedir")
+        gui: Whether to build the GUI version (default: False)
     """
     # Check if PyInstaller is installed
     try:
@@ -94,23 +95,26 @@ def build(mode="onedir"):
             print(f"Cleaning {dir_name}...")
             shutil.rmtree(dir_name)
 
-    # Use spec file only if it exists and we're using default onedir mode
-    # When mode is explicitly specified, use command line to have full control
+    # Use spec file only if it exists and we're using default onedir mode AND not building GUI (unless we have a gui spec)
+    # For now, let's always generate command for GUI to ensure correct settings
     spec_file = Path("montagepy.spec")
-    # Use spec file only for default onedir mode (when no --mode is specified)
-    # Note: This assumes spec file is configured for onedir mode
-    use_spec = spec_file.exists() and mode == "onedir"
+    use_spec = spec_file.exists() and mode == "onedir" and not gui
     
     if use_spec:
         print("Building executable using montagepy.spec (onedir mode)...")
-        cmd = ["pyinstaller", "--clean", str(spec_file)]
+        cmd = [sys.executable, "-m", "PyInstaller", "--clean", str(spec_file)]
     else:
         mode_name = "onefile" if mode == "onefile" else "directory"
-        print(f"Building executable with PyInstaller ({mode_name} mode)...")
+        app_type = "GUI" if gui else "CLI"
+        print(f"Building {app_type} executable with PyInstaller ({mode_name} mode)...")
+        
+        exe_name = "MontagePyGUI" if gui else "montagepy"
+        entry_point = "montagepy/gui/main.py" if gui else "montagepy/main.py"
+        
         cmd = [
-            "pyinstaller",
+            sys.executable, "-m", "PyInstaller",
             "--clean",
-            "--name=montagepy",
+            f"--name={exe_name}",
             "--add-data=config.sample.yaml:.",
             "--hidden-import=av",
             "--hidden-import=av.codec",
@@ -159,28 +163,49 @@ def build(mode="onedir"):
             "--add-data=ui_prototype:ui_prototype",
         ]
         
+        if gui:
+            cmd.append("--windowed")
+            cmd.append("--hidden-import=PySide6")
+            cmd.append("--hidden-import=qt_material")
+            cmd.append("--collect-all=qt_material")
+            
+            # Add platform-specific icon if it exists
+            if sys.platform == "win32":
+                icon_path = Path("montagepy/gui/assets/icon.ico")
+            elif sys.platform == "darwin":
+                icon_path = Path("montagepy/gui/assets/icon.icns")
+            else:
+                icon_path = Path("montagepy/gui/assets/icon.png")
+            
+            if icon_path.exists():
+                cmd.append(f"--icon={icon_path}")
+                # Also add PNG for runtime use
+                png_path = Path("montagepy/gui/assets/icon.png")
+                if png_path.exists():
+                    cmd.append(f"--add-data={png_path}:montagepy/gui/assets")
+        
         # Add --onefile option if mode is onefile
         if mode == "onefile":
             cmd.insert(2, "--onefile")  # Insert after --clean
         
-        cmd.append("montagepy/main.py")
+        cmd.append(entry_point)
 
     result = subprocess.run(cmd, check=False)
 
     if result.returncode == 0:
         print("\n✅ Build successful!")
-        exe_name = "montagepy.exe" if sys.platform == "win32" else "montagepy"
+        exe_name_ext = f"{exe_name}.exe" if sys.platform == "win32" else exe_name
         
         # Determine executable path based on mode
         if mode == "onefile":
             # Onefile mode: executable is directly in dist/
-            exe_path = os.path.abspath(f"dist/{exe_name}")
+            exe_path = os.path.abspath(f"dist/{exe_name_ext}")
         else:
-            # Onedir mode: executable is in dist/montagepy/montagepy
-            exe_path = os.path.abspath(f"dist/montagepy/{exe_name}")
+            # Onedir mode: executable is in dist/exe_name/exe_name
+            exe_path = os.path.abspath(f"dist/{exe_name}/{exe_name_ext}")
             # Fallback: check if it's in dist/ directly (in case spec file uses onefile)
             if not os.path.exists(exe_path):
-                exe_path = os.path.abspath(f"dist/{exe_name}")
+                exe_path = os.path.abspath(f"dist/{exe_name_ext}")
         
         if os.path.exists(exe_path):
             print(f"Executable location: {exe_path}")
@@ -207,7 +232,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python build.py                    # Build executable (onedir mode, default)
+  python build.py                    # Build CLI executable (onedir mode, default)
+  python build.py --gui              # Build GUI executable
   python build.py --build            # Build executable (explicit)
   python build.py --mode onefile     # Build as single executable file
   python build.py --mode onedir      # Build as directory (default)
@@ -219,6 +245,11 @@ Examples:
         "--build",
         action="store_true",
         help="Build executable using PyInstaller",
+    )
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Build GUI application instead of CLI",
     )
     parser.add_argument(
         "--clean",
@@ -245,7 +276,7 @@ Examples:
 
     # Build if requested
     if args.build:
-        build(mode=args.mode)
+        build(mode=args.mode, gui=args.gui)
 
 
 if __name__ == "__main__":
